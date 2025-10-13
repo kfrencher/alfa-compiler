@@ -3,6 +3,7 @@ import fsSync from 'fs';
 import path from 'path';
 import { AlfaLanguageServerClient, LanguageServerConfig } from './language-server-client.js';
 import { fileURLToPath } from 'url';
+import { FileChangeType } from 'vscode-languageserver-protocol';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -33,6 +34,13 @@ export class AlfaCompiler {
     }
 
     return this.languageServerClient.compile(inputFile);
+  }
+
+  /**
+   * Allows clients to notify the language server that a file was deleted
+   */
+  async notifyDeletedFile(filePath: string): Promise<void> {
+    this.languageServerClient.didChangeWatchedFiles(filePath, FileChangeType.Deleted);
   }
 
   /**
@@ -98,6 +106,16 @@ export const compiler = await (async function () {
   }
 })();
 
+/**
+ * Allows clients to notify the language server that a file was deleted
+ */
+export async function notifyDeletedFile(filePath: string): Promise<void> {
+  return compiler.notifyDeletedFile(filePath);
+}
+
+/**
+ * Use the AlfaCompiler instance to compile a file and return the output
+ */
 export async function compileFile(filename: string): Promise<string> {
   if (!filename.trim()) {
     console.log('Please provide a filename');

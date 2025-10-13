@@ -1,10 +1,15 @@
-import { compileFile } from './compiler.js';
+import { compileFile, notifyDeletedFile } from './compiler.js';
 import { IncomingMessage, ServerResponse } from 'http';
-import { writeFile, rm } from 'fs/promises';
-import { join } from 'path';
+import { writeFile, rm, stat } from 'fs/promises';
+import { createWriteStream } from 'fs';
+import { join, dirname, resolve } from 'path';
+import { fileURLToPath } from 'url';
+import { pipeline } from 'stream/promises';
 
-const projectRoot = process.cwd();
-const policiesDir = join(projectRoot, 'server', 'policies');
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+const packageRoot = resolve(__dirname, '..');
+const policiesDir = join(packageRoot, 'server', 'policies');
 
 /**
  * Handles an upload of a alfa file and returns the compiled XACML output
@@ -24,25 +29,33 @@ export async function handleCompileRequest(req: IncomingMessage, res: ServerResp
     return;
   }
 
+  // Check Content-Length header first
+  const contentLength = parseInt(req.headers['content-length'] || '0', 10);
+  if (contentLength === 0) {
+    res.writeHead(400, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ error: 'Empty file content' }));
+    return;
+  }
+
   let filePath: string | null = null;
 
   try {
-    // Read the uploaded file content
-    const fileContent = await readRequestBody(req);
+    // Create a temporary file to save the uploaded content
+    filePath = join(policiesDir, `uploaded-policy-${Date.now()}.alfa`);
     
-    if (!fileContent.trim()) {
+    // Pipe the request directly to file
+    const writeStream = createWriteStream(filePath);
+    await pipeline(req, writeStream);
+    
+    // Check if file is empty after writing
+    const fileStats = await stat(filePath);
+    if (fileStats.size === 0) {
       res.writeHead(400, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify({ error: 'Empty file content' }));
       return;
     }
-
-    // Create a temporary file to save the uploaded content
-    filePath = join(policiesDir, 'uploaded-policy.alfa');
     
-    // Write the content to temporary file
-    await writeFile(filePath, fileContent, 'utf-8');
-    
-    console.log(`Processing uploaded file: ${filePath}`);
+    console.log(`Processing uploaded file: ${filePath} (${fileStats.size} bytes)`);
     
     // Compile the temporary file
     const result = await compileFile(filePath);
@@ -61,31 +74,11 @@ export async function handleCompileRequest(req: IncomingMessage, res: ServerResp
     if (filePath) {
       try {
         await rm(filePath, { force: true });
+        await notifyDeletedFile(filePath);
         console.log(`Cleaned up temporary file: ${filePath}`);
       } catch (cleanupError) {
         console.warn('Failed to clean up temporary files:', cleanupError);
       }
     }
   }
-}
-
-/**
- * Reads the request body and returns it as a string
- */
-function readRequestBody(req: IncomingMessage): Promise<string> {
-  return new Promise((resolve, reject) => {
-    let body = '';
-    
-    req.on('data', (chunk) => {
-      body += chunk.toString('utf-8');
-    });
-    
-    req.on('end', () => {
-      resolve(body);
-    });
-    
-    req.on('error', (error) => {
-      reject(error);
-    });
-  });
 }

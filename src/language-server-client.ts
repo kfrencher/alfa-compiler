@@ -115,7 +115,7 @@ export class AlfaLanguageServerClient {
       );
     }
 
-    await this.didChangeWatchedFiles(inputFile);
+    await this.didChangeWatchedFiles(inputFile, FileChangeType.Changed);
 
     // TODO: Improve this with a more robust mechanism to ensure the server has processed the file change
     await new Promise((resolve) => setTimeout(resolve, 1000)); // Wait a moment for the server to process the change
@@ -132,6 +132,7 @@ export class AlfaLanguageServerClient {
       }
     }
     const compiledResult = await this.getCompilationOutput();
+    this.clearCompilationOutputDir(); // Clean up after reading
 
     console.debug('Compiled result:');
     console.debug(compiledResult);
@@ -161,12 +162,12 @@ export class AlfaLanguageServerClient {
   /**
    * Notify the language server of watched file changes
    */
-  didChangeWatchedFiles(uri: string): Promise<void> {
+  didChangeWatchedFiles(uri: string, type: FileChangeType): Promise<void> {
     return this.connection.sendNotification('workspace/didChangeWatchedFiles', {
       changes: [
         {
           uri: URI.file(uri).toString(),
-          type: FileChangeType.Changed,
+          type: type,
         },
       ],
     });
