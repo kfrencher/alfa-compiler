@@ -47,7 +47,8 @@ describe('HTTP Server', () => {
       await new Promise((resolve) => {
         serverProcess.on('exit', () => {
           console.log('Server process exited');
-          resolve(undefined);
+          // Give some time for cleanup
+          new Promise((r) => setTimeout(r, 3000)).then(() => resolve(undefined))
         });
 
         setTimeout(() => {
