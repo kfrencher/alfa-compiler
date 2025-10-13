@@ -1,0 +1,10 @@
+// This is a placeholder policy that is here to
+// get the language server to compile policies in this folder
+namespace placeholder {
+  policy simplepolicy {
+    apply firstApplicable
+    rule {
+      deny
+    }
+  }
+}

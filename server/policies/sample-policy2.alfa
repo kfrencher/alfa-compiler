@@ -1,0 +1,12 @@
+// Example ALFA policy file
+// This is a placeholder showing basic ALFA-like syntax
+namespace example2 {
+  policy simplepolicy {
+    target clause Attributes.actionId == "read"
+    apply firstApplicable
+
+    rule {
+      permit
+    }
+  }
+}
