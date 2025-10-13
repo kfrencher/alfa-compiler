@@ -6,6 +6,8 @@ import { AlfaLanguageServerClient, LanguageServerConfig } from './language-serve
 export class AlfaCompiler {
   private languageServerClient: AlfaLanguageServerClient;
   private enableDebug = true;
+  private projectRoot = process.cwd();
+  private languageServerPath = path.join(this.projectRoot, 'server', 'alfa-language-server.jar');
 
   constructor() {
     this.languageServerClient = new AlfaLanguageServerClient(this.getLanguageServerConfig());
@@ -16,7 +18,7 @@ export class AlfaCompiler {
    */
   async compile(inputFile: string): Promise<string[]> {
     console.log(`Compiling ALFA file: ${inputFile}`);
-    
+
     const stats = await fs.stat(inputFile);
     if (!stats.isFile()) {
       throw new Error(`Input path is not a file: ${inputFile}`);
@@ -58,9 +60,7 @@ export class AlfaCompiler {
    * Get default ALFA language server configuration
    */
   private getLanguageServerConfig(): LanguageServerConfig {
-    const projectRoot = process.cwd();
-    const serverPath = path.join(projectRoot, 'server', 'alfa-language-server.jar');
-    
+    const serverPath = this.languageServerPath;
     if (!fsSync.existsSync(serverPath)) {
       throw new Error(`ALFA language server jar not found at: ${serverPath}`);
     }
@@ -68,57 +68,57 @@ export class AlfaCompiler {
     const javaPath = 'java';
 
     const args = ['-jar', serverPath];
-    if(this.enableDebug) {
+    if (this.enableDebug) {
       args.push('-trace');
       args.push('-log');
     }
-    
+
     return {
       command: javaPath,
       args: args,
-      cwd: projectRoot
+      cwd: this.projectRoot,
     };
   }
 }
 
 export const compiler = await (async function () {
-    const compiler = new AlfaCompiler();
-    try {
-        console.log('Initializing ALFA compiler...');
-        await compiler.initialize();
-        console.log('ALFA compiler ready!');
-        return compiler;
-    } catch (error) {
-        console.error('Failed to initialize compiler:', error);
-        process.exit(1);
-    }
+  const compiler = new AlfaCompiler();
+  try {
+    console.log('Initializing ALFA compiler...');
+    await compiler.initialize();
+    console.log('ALFA compiler ready!');
+    return compiler;
+  } catch (error) {
+    console.error('Failed to initialize compiler:', error);
+    process.exit(1);
+  }
 })();
 
 export async function compileFile(filename: string): Promise<string> {
-    if (!filename.trim()) {
-        console.log('Please provide a filename');
-        return '';
-    }
+  if (!filename.trim()) {
+    console.log('Please provide a filename');
+    return '';
+  }
 
-    try {
-        console.log(`Compiling: ${filename}`);
-        const result = await compiler.compile(filename.trim());
+  try {
+    console.log(`Compiling: ${filename}`);
+    const result = await compiler.compile(filename.trim());
 
-        if (result && result.length > 0) {
-            console.log('Compilation successful!');
-            console.log('Output:');
-            result.forEach((output, index) => {
-                console.log(`--- Result ${index + 1} ---`);
-                console.log(output);
-                console.log('--- End Result ---\n');
-            });
-            return result.join('\n');
-        } else {
-            console.log('Compilation completed with no output');
-            return '';
-        }
-    } catch (error) {
-        console.error('Compilation failed:', error instanceof Error ? error.message : String(error));
-        throw error;
+    if (result && result.length > 0) {
+      console.log('Compilation successful!');
+      console.log('Output:');
+      result.forEach((output, index) => {
+        console.log(`--- Result ${index + 1} ---`);
+        console.log(output);
+        console.log('--- End Result ---\n');
+      });
+      return result.join('\n');
+    } else {
+      console.log('Compilation completed with no output');
+      return '';
     }
+  } catch (error) {
+    console.error('Compilation failed:', error instanceof Error ? error.message : String(error));
+    throw error;
+  }
 }

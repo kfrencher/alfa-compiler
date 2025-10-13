@@ -1,0 +1,12 @@
+// Policy that should fail to compile due to syntax error
+namespace testTxt {
+  policy invalidPolicy {
+
+    invalid-syntax
+
+    apply firstApplicable
+    rule {
+      permit
+    }
+  }
+}
