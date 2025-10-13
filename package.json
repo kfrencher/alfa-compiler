@@ -19,8 +19,17 @@
     "clean": "rm -rf dist",
     "prepublishOnly": "npm run clean && npm run build",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
-    "format:check": "prettier --check \"src/**/*.ts\" \"test/**/*.ts\""
+    "format:check": "prettier --check \"src/**/*.ts\" \"test/**/*.ts\"",
+    "global-install": "npm run build && npm install -g .",
+    "global-uninstall": "npm uninstall -g alfa-compiler"
   },
+  "files": [
+    "dist/",
+    "server/",
+    "system.alfa",
+    "standard-attributes.alfa",
+    "README.md"
+  ],
   "keywords": [
     "alfa",
     "authorization",

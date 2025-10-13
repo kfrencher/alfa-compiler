@@ -24,7 +24,8 @@
     "exactOptionalPropertyTypes": true,
     "allowUnusedLabels": false,
     "allowUnreachableCode": false,
-    "resolveJsonModule": true
+    "resolveJsonModule": true,
+    "preserveConstEnums": true
   },
   "include": [
     "src/**/*"

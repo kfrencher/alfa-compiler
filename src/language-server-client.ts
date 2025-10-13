@@ -17,6 +17,7 @@ import {
 } from 'vscode-languageserver-protocol';
 import { URI } from 'vscode-uri';
 import { FileChangeType } from 'vscode-languageserver-protocol';
+import { fileURLToPath } from 'url';
 
 export interface LanguageServerConfig {
   command: string;
@@ -24,12 +25,15 @@ export interface LanguageServerConfig {
   args: string[];
 }
 
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
 export class AlfaLanguageServerClient {
   private connection: MessageConnection;
   private serverProcess: ChildProcess | null = null;
   private isInitialized = false;
   private diagnostics: Map<string, Diagnostic[]> = new Map();
-  private outputDir = path.join(process.cwd(), 'src-gen');
+  private outputDir = path.join(path.resolve(__dirname,'..'), 'src-gen');
 
   constructor(private config: LanguageServerConfig) {
     // Start the language server process

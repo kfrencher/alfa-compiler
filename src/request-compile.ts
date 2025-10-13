@@ -1,8 +1,7 @@
 import { compileFile } from './compiler.js';
 import { IncomingMessage, ServerResponse } from 'http';
-import { writeFile, mkdtemp, rm } from 'fs/promises';
+import { writeFile, rm } from 'fs/promises';
 import { join } from 'path';
-import { tmpdir } from 'os';
 
 const projectRoot = process.cwd();
 const policiesDir = join(projectRoot, 'server', 'policies');

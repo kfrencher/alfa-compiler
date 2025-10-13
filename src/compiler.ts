@@ -2,12 +2,16 @@ import fs from 'fs/promises';
 import fsSync from 'fs';
 import path from 'path';
 import { AlfaLanguageServerClient, LanguageServerConfig } from './language-server-client.js';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 export class AlfaCompiler {
   private languageServerClient: AlfaLanguageServerClient;
   private enableDebug = true;
-  private projectRoot = process.cwd();
-  private languageServerPath = path.join(this.projectRoot, 'server', 'alfa-language-server.jar');
+  private packageRoot = path.resolve(__dirname, '..');
+  private languageServerPath = path.join(this.packageRoot, 'server', 'alfa-language-server.jar');
 
   constructor() {
     this.languageServerClient = new AlfaLanguageServerClient(this.getLanguageServerConfig());
@@ -76,7 +80,7 @@ export class AlfaCompiler {
     return {
       command: javaPath,
       args: args,
-      cwd: this.projectRoot,
+      cwd: this.packageRoot,
     };
   }
 }
