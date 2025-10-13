@@ -1,0 +1,9 @@
+// This is a valid ALFA policy file used to test if we can successfully
+namespace test {
+  policy validPolicy {
+    apply firstApplicable
+    rule {
+      permit
+    }
+  }
+}

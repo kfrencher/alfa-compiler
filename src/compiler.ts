@@ -1,7 +1,7 @@
 import fs from 'fs/promises';
 import fsSync from 'fs';
 import path from 'path';
-import { AlfaLanguageServerClient, CompilationResult, LanguageServerConfig } from './language-server-client.js';
+import { AlfaLanguageServerClient, LanguageServerConfig } from './language-server-client.js';
 
 export class AlfaCompiler {
   private languageServerClient: AlfaLanguageServerClient;
@@ -26,31 +26,15 @@ export class AlfaCompiler {
       throw new Error(`Input file not found: ${inputFile}`);
     }
 
-    // Always use language server for compilation - no fallback
-    await this.clearCompilationOutputDir();
-    if (!this.languageServerClient.isReady()) {
-      throw new Error('Language server is not initialized. Please call initialize() before compiling.');
-    }
-
-    await this.languageServerClient.didChangeWatchedFiles(inputFile);
-
-    // TODO: Improve this with a more robust mechanism to ensure the server has processed the file change
-    await new Promise(resolve => setTimeout(resolve, 1000)); // Wait a moment for the server to process the change
-
-    const compiledResult = await this.languageServerClient.getCompilationOutput();
-    
-    console.log('Compiled result:');
-    console.log(compiledResult);
-    return compiledResult
+    return this.languageServerClient.compile(inputFile);
   }
 
   /**
    * Initialize the language server (if configured)
    */
   async initialize(): Promise<void> {
-    await this.clearCompilationOutputDir();
     if (this.languageServerClient && !this.languageServerClient.isReady()) {
-      await this.languageServerClient.start();
+      await this.languageServerClient.initialize();
     }
   }
 
@@ -95,23 +79,46 @@ export class AlfaCompiler {
       cwd: projectRoot
     };
   }
+}
 
-  /**
-   * Clear the compilation output directory. This is the
-   * directory where the language server writes compiled files.
-   */
-  private async clearCompilationOutputDir(): Promise<void> {
-    const outputDir = path.join(process.cwd(), 'src-gen');
-    // Delete old output files to avoid confusion
+export const compiler = await (async function () {
+    const compiler = new AlfaCompiler();
     try {
-      const oldFiles = await fs.readdir(outputDir);
-      for (const file of oldFiles) {
-        const filePath = path.join(outputDir, file);
-        await fs.unlink(filePath);
-      }
-    } catch (deleteError) {
-      throw new Error(`Failed to clean old output files: ${deleteError instanceof Error ? deleteError.message : String(deleteError)}`);
+        console.log('Initializing ALFA compiler...');
+        await compiler.initialize();
+        console.log('ALFA compiler ready!');
+        return compiler;
+    } catch (error) {
+        console.error('Failed to initialize compiler:', error);
+        process.exit(1);
+    }
+})();
+
+export async function compileFile(filename: string): Promise<string> {
+    if (!filename.trim()) {
+        console.log('Please provide a filename');
+        return '';
     }
 
-  }
+    try {
+        console.log(`Compiling: ${filename}`);
+        const result = await compiler.compile(filename.trim());
+
+        if (result && result.length > 0) {
+            console.log('Compilation successful!');
+            console.log('Output:');
+            result.forEach((output, index) => {
+                console.log(`--- Result ${index + 1} ---`);
+                console.log(output);
+                console.log('--- End Result ---\n');
+            });
+            return result.join('\n');
+        } else {
+            console.log('Compilation completed with no output');
+            return '';
+        }
+    } catch (error) {
+        console.error('Compilation failed:', error instanceof Error ? error.message : String(error));
+        throw error;
+    }
 }

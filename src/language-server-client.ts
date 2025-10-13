@@ -24,22 +24,16 @@ export interface LanguageServerConfig {
   args: string[];
 }
 
-export interface CompilationResult {
-  success: boolean;
-  output?: string[];
-  diagnostics: Diagnostic[];
-  errors?: string[];
-}
-
 export class AlfaLanguageServerClient {
   private connection: MessageConnection;
   private serverProcess: ChildProcess | null = null;
   private isInitialized = false;
   private diagnostics: Map<string, Diagnostic[]> = new Map();
-  private version = 1;
+  private outputDir = path.join(process.cwd(), 'src-gen');
 
   constructor(private config: LanguageServerConfig) {
       // Start the language server process
+      console.log(`Starting language server with command: ${this.config.command} ${this.config.args.join(' ')}`);
       this.serverProcess = spawn(this.config.command, this.config.args); 
 
       if (!this.serverProcess.stdout || !this.serverProcess.stdin) {
@@ -65,23 +59,16 @@ export class AlfaLanguageServerClient {
   }
 
   /**
-   * Start the language server and initialize the connection
-   */
-  async start(): Promise<void> {
-    try {
-      // Initialize the server
-      await this.initialize();
-      console.log('ALFA Language Server started successfully');
-    } catch (error) {
-      throw new Error(`Failed to start language server: ${error instanceof Error ? error.message : String(error)}`);
-    }
-  }
-
-  /**
    * Initialize the language server
    */
-  private async initialize(): Promise<InitializeResult> {
+  async initialize(): Promise<InitializeResult> {
+    if( this.isInitialized ) {
+      throw new Error('Language server is already initialized');
+    }
+
     console.log('Initializing language server...');
+
+
     const initParams: InitializeParams = {
       processId: process.pid,
       capabilities: this.getClientCapabilities(),
@@ -98,10 +85,60 @@ export class AlfaLanguageServerClient {
       console.log('Language server initialized...');
       console.log(`Language server capabilities:\n${JSON.stringify(result.capabilities, null, 4)}`);
       this.isInitialized = true;
-      this.connection.sendNotification('initialized', {});
+      await this.connection.sendNotification('initialized', {});
+      await new Promise(resolve => setTimeout(resolve, 2000)); // Wait a moment for the server to be fully ready
       return result;
     } catch (error) {
       throw new Error(`Failed to initialize language server: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  }
+
+  /**
+   * Triggers the compilation of the given ALFA file using the language server
+   */
+  async compile(inputFile: string): Promise<string[]> {
+    // Always use language server for compilation - no fallback
+    this.diagnostics.clear();
+    await this.clearCompilationOutputDir();
+    if (!this.isReady()) {
+      throw new Error('Language server is not initialized. Please call initialize() before compiling.');
+    }
+
+    await this.didChangeWatchedFiles(inputFile);
+
+    // TODO: Improve this with a more robust mechanism to ensure the server has processed the file change
+    await new Promise(resolve => setTimeout(resolve, 1000)); // Wait a moment for the server to process the change
+
+    if(this.diagnostics.size > 0) {
+      const allDiagnostics = Array.from(this.diagnostics.values()).flat();
+      const errorDiagnostics = allDiagnostics.filter(diag => diag.severity === 1);
+      if(errorDiagnostics.length > 0) {
+        const errorMessages = errorDiagnostics.map(diag => `Line ${diag.range.start.line + 1}, Col ${diag.range.start.character + 1}: ${diag.message}`);
+        throw new Error(`Compilation failed with errors:\n${errorMessages.join('\n')}`);
+      }
+    }
+    const compiledResult = await this.getCompilationOutput();
+    
+    console.debug('Compiled result:');
+    console.debug(compiledResult);
+    return compiledResult
+  }
+
+  /**
+   * Clear the compilation output directory. This is the
+   * directory where the language server writes compiled files.
+   */
+  private async clearCompilationOutputDir(): Promise<void> {
+    // Delete old output files to avoid confusion
+    const outputDir = this.outputDir;
+    try {
+      const oldFiles = await fs.readdir(outputDir);
+      for (const file of oldFiles) {
+        const filePath = path.join(outputDir, file);
+        await fs.unlink(filePath);
+      }
+    } catch (deleteError) {
+      throw new Error(`Failed to clean old output files: ${deleteError instanceof Error ? deleteError.message : String(deleteError)}`);
     }
   }
 
@@ -118,56 +155,6 @@ export class AlfaLanguageServerClient {
   }
   
   /**
-   * Open a document in the language server
-   */
-  didChange(uri: string, content: string): Promise<void> {
-    return this.connection.sendNotification('textDocument/didChange', {
-      textDocument: {
-        uri: URI.file(uri).toString(),
-        version: this.version++
-      },
-      contentChanges: [{ text: content }]
-    });
-  }
-
-  /**
-   * Open a document in the language server
-   */
-  openDocument(uri: string, content: string): Promise<void> {
-    return this.connection.sendNotification('textDocument/didOpen', {
-      textDocument: {
-        uri: URI.file(uri).toString(),
-        languageId: 'alfa',
-        version: 1,
-        text: content
-      }
-    });
-  }
-
-  /**
-   * Open a document in the language server
-   */
-  closeDocument(uri: string): Promise<void> {
-    return this.connection.sendNotification('textDocument/didClose', {
-      textDocument: {
-        uri: URI.file(uri).toString()
-      }
-    });
-  }
-
-  /**
-   * Save a document in the language server
-   */
-  saveDocument(uri: string, content: string): Promise<void> {
-    return this.connection.sendNotification('textDocument/didSave', {
-      textDocument: {
-        uri: URI.file(uri).toString(),
-      },
-      text: content
-    });
-  }
-
-  /**
    * Request compilation from the ALFA language server
    */
   async getCompilationOutput(): Promise<string[]> {
@@ -176,7 +163,7 @@ export class AlfaLanguageServerClient {
     }
 
     // Read all files in output directory
-    const outputDir = path.join(this.config.cwd, 'src-gen');
+    const outputDir = this.outputDir;
     try {
       const files = await fs.readdir(outputDir);
       const outputs: string[] = [];
