@@ -5,6 +5,7 @@ import * as path from 'path';
 import { multiFileAlfaPolicy } from './resources/policies/multi-file-policy';
 import { CompiledFile } from '../src/language-server-client';
 import { fail } from 'assert';
+import { delay } from '../src/utils';
 
 const debug = process.env.DEBUG === 'true' || false;
 
@@ -62,14 +63,14 @@ describe('HTTP Server', () => {
         serverProcess.on('exit', () => {
           console.log('Server process exited');
           // Give some time for cleanup
-          new Promise((r) => setTimeout(r, 3000)).then(() => resolve(undefined))
+          delay(3000).then(() => resolve(undefined));
         });
 
-        setTimeout(() => {
+        delay(5000).then(() => {
           console.error('Server did not shut down gracefully, killed forcefully');
           serverProcess.kill('SIGKILL');
           resolve(undefined);
-        }, 5000);
+        });
       });
     }
   }, 10000);
@@ -181,5 +182,5 @@ describe('HTTP Server', () => {
     expect(content).toContain('xacml3:Target');
     expect(content).toContain('system_a.person');
     expect(content).toContain('system_a.group');
-  });
+  }, 10000);
 });

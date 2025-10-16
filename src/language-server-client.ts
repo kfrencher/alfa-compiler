@@ -19,6 +19,7 @@ import { URI } from 'vscode-uri';
 import { FileChangeType } from 'vscode-languageserver-protocol';
 import { fileURLToPath } from 'url';
 import { formatXml } from './xml-utils.js';
+import { delay } from './utils.js';
 
 export interface LanguageServerConfig {
   command: string;
@@ -35,6 +36,8 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 export class AlfaLanguageServerClient {
+  private afterDidChangeWatchedFilesDelay = 1000; // ms
+  private afterInitializeDelay = 2000; // ms
   private connection: MessageConnection;
   private serverProcess: ChildProcess | null = null;
   private isInitialized = false;
@@ -99,7 +102,7 @@ export class AlfaLanguageServerClient {
       console.log(`Language server capabilities:\n${JSON.stringify(result.capabilities, null, 4)}`);
       this.isInitialized = true;
       await this.connection.sendNotification('initialized', {});
-      await new Promise((resolve) => setTimeout(resolve, 2000)); // Wait a moment for the server to be fully ready
+      await delay(this.afterInitializeDelay); // Wait a moment for the server to be fully ready
       return result;
     } catch (error) {
       throw new Error(
@@ -124,7 +127,7 @@ export class AlfaLanguageServerClient {
     await this.didChangeWatchedFiles(inputFiles, FileChangeType.Changed);
 
     // TODO: Improve this with a more robust mechanism to ensure the server has processed the file change
-    await new Promise((resolve) => setTimeout(resolve, 1000)); // Wait a moment for the server to process the change
+    await delay(this.afterDidChangeWatchedFilesDelay); // Wait a moment for the server to process the change
 
     if (this.diagnostics.size > 0) {
       const allDiagnostics = Array.from(this.diagnostics.values()).flat();
@@ -161,7 +164,7 @@ export class AlfaLanguageServerClient {
     await this.didChangeWatchedFiles(inputFile, FileChangeType.Changed);
 
     // TODO: Improve this with a more robust mechanism to ensure the server has processed the file change
-    await new Promise((resolve) => setTimeout(resolve, 1000)); // Wait a moment for the server to process the change
+    await delay(this.afterDidChangeWatchedFilesDelay); // Wait a moment for the server to process the change
 
     if (this.diagnostics.size > 0) {
       const allDiagnostics = Array.from(this.diagnostics.values()).flat();

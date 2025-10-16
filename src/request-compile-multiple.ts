@@ -2,8 +2,9 @@ import { rm, writeFile } from 'fs/promises';
 import { IncomingMessage, ServerResponse } from 'http';
 import { dirname, join, resolve } from 'path';
 import { fileURLToPath } from 'url';
-import { compileFiles, notifyDeletedFile } from './compiler.js';
+import { compileFiles, notifyDeletedFiles } from './compiler.js';
 import { CompiledFile } from './language-server-client.js';
+import { delay } from './utils.js';
 
 
 const __filename = fileURLToPath(import.meta.url);
@@ -73,7 +74,6 @@ export async function handleCompileMultipleRequest(req: IncomingMessage, res: Se
       await writeFile(tempFilePath, file.content, 'utf-8');
       tempFilePaths.push(tempFilePath);
     }
-    await new Promise(resolve => setTimeout(resolve, 1500));
     // Compile the first temporary file
     const result = await compileFiles(tempFilePaths);
 
@@ -88,12 +88,13 @@ export async function handleCompileMultipleRequest(req: IncomingMessage, res: Se
       for(const tempFilePath of tempFilePaths) {
         try {
           await rm(tempFilePath, { force: true });
-          await notifyDeletedFile(tempFilePath);
           console.log(`Cleaned up temporary file: ${tempFilePath}`);
         } catch (cleanupError) {
           console.warn('Failed to clean up temporary files:', cleanupError);
         }
       }
+      await delay(500);
+      await notifyDeletedFiles(tempFilePaths);
     }
   }
 }
