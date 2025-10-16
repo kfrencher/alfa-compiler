@@ -19,12 +19,16 @@ describe('AlfaCompiler', () => {
     expect(compiledResult.length).toBeGreaterThan(0);
     expect(compiledResult).toBeDefined();
 
-    var firstResult = compiledResult[0];
+    const firstResult = compiledResult[0];
+    const content = firstResult.content;
+    const fileName = firstResult.fileName;
 
-    expect(firstResult).toContain('xacml3:Policy');
-    expect(firstResult).toContain('xacml3:Target');
-    expect(firstResult).toContain('xacml3:Rule');
-    expect(firstResult).toContain('http://axiomatics.com/alfa/identifier/test.validPolicy');
+
+    expect(fileName).toBe('test.validPolicy.xml');
+    expect(content).toContain('xacml3:Policy');
+    expect(content).toContain('xacml3:Target');
+    expect(content).toContain('xacml3:Rule');
+    expect(content).toContain('http://axiomatics.com/alfa/identifier/test.validPolicy');
   });
 
   test('should provide meaningful error for non-existent file', async () => {

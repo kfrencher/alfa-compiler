@@ -18,11 +18,17 @@ import {
 import { URI } from 'vscode-uri';
 import { FileChangeType } from 'vscode-languageserver-protocol';
 import { fileURLToPath } from 'url';
+import { formatXml } from './xml-utils.js';
 
 export interface LanguageServerConfig {
   command: string;
   cwd: string;
   args: string[];
+}
+
+export interface CompiledFile {
+  fileName: string;
+  content: string;
 }
 
 const __filename = fileURLToPath(import.meta.url);
@@ -33,7 +39,7 @@ export class AlfaLanguageServerClient {
   private serverProcess: ChildProcess | null = null;
   private isInitialized = false;
   private diagnostics: Map<string, Diagnostic[]> = new Map();
-  private outputDir = path.join(path.resolve(__dirname,'..'), 'src-gen');
+  private outputDir = path.join(path.resolve(__dirname, '..'), 'src-gen');
 
   constructor(private config: LanguageServerConfig) {
     // Start the language server process
@@ -105,7 +111,44 @@ export class AlfaLanguageServerClient {
   /**
    * Triggers the compilation of the given ALFA file using the language server
    */
-  async compile(inputFile: string): Promise<string[]> {
+  async compileFiles(inputFiles: string[]): Promise<CompiledFile[]> {
+    // Always use language server for compilation - no fallback
+    this.diagnostics.clear();
+    await this.clearCompilationOutputDir();
+    if (!this.isReady()) {
+      throw new Error(
+        'Language server is not initialized. Please call initialize() before compiling.'
+      );
+    }
+
+    await this.didChangeWatchedFiles(inputFiles, FileChangeType.Changed);
+
+    // TODO: Improve this with a more robust mechanism to ensure the server has processed the file change
+    await new Promise((resolve) => setTimeout(resolve, 1000)); // Wait a moment for the server to process the change
+
+    if (this.diagnostics.size > 0) {
+      const allDiagnostics = Array.from(this.diagnostics.values()).flat();
+      const errorDiagnostics = allDiagnostics.filter((diag) => diag.severity === 1);
+      if (errorDiagnostics.length > 0) {
+        const errorMessages = errorDiagnostics.map(
+          (diag) =>
+            `Line ${diag.range.start.line + 1}, Col ${diag.range.start.character + 1}: ${diag.message}`
+        );
+        throw new Error(`Compilation failed with errors:\n${errorMessages.join('\n')}`);
+      }
+    }
+    const compiledResult = await this.getCompilationOutput();
+    this.clearCompilationOutputDir(); // Clean up after reading
+
+    console.debug('Compiled result:');
+    console.debug(compiledResult);
+    return compiledResult;
+  }
+
+  /**
+   * Triggers the compilation of the given ALFA file using the language server
+   */
+  async compile(inputFile: string): Promise<CompiledFile[]> {
     // Always use language server for compilation - no fallback
     this.diagnostics.clear();
     await this.clearCompilationOutputDir();
@@ -162,21 +205,29 @@ export class AlfaLanguageServerClient {
   /**
    * Notify the language server of watched file changes
    */
-  didChangeWatchedFiles(uri: string, type: FileChangeType): Promise<void> {
+  didChangeWatchedFiles(uri: string | string[], type: FileChangeType): Promise<void> {
+    const changes =
+      uri instanceof Array
+        ? uri.map((fileUri) => ({
+            uri: URI.file(fileUri).toString(),
+            type: type,
+          }))
+        : [
+            {
+              uri: URI.file(uri).toString(),
+              type: type,
+            },
+          ];
+
     return this.connection.sendNotification('workspace/didChangeWatchedFiles', {
-      changes: [
-        {
-          uri: URI.file(uri).toString(),
-          type: type,
-        },
-      ],
+      changes: changes,
     });
   }
 
   /**
    * Request compilation from the ALFA language server
    */
-  async getCompilationOutput(): Promise<string[]> {
+  async getCompilationOutput(): Promise<CompiledFile[]> {
     if (!this.connection) {
       throw new Error('Language server connection not available');
     }
@@ -185,12 +236,15 @@ export class AlfaLanguageServerClient {
     const outputDir = this.outputDir;
     try {
       const files = await fs.readdir(outputDir);
-      const outputs: string[] = [];
+      const outputs: CompiledFile[] = [];
       for (const file of files) {
         const fullPath = path.join(outputDir, file);
         try {
           const content = await fs.readFile(fullPath, 'utf-8');
-          outputs.push(content);
+          outputs.push({
+            fileName: file,
+            content: formatXml(content),
+          });
         } catch (readError) {
           console.error(
             `Failed to read output file ${fullPath}: ${readError instanceof Error ? readError.message : String(readError)}`
@@ -253,7 +307,7 @@ export class AlfaLanguageServerClient {
       'textDocument/publishDiagnostics',
       (params: PublishDiagnosticsParams) => {
         this.diagnostics.set(params.uri, params.diagnostics);
-        console.log(`Received ${params.diagnostics.length} diagnostics for ${params.uri}`);
+        console.debug(`Received ${params.diagnostics.length} diagnostics for ${params.uri}`);
       }
     );
 

@@ -59,6 +59,11 @@ export async function handleCompileRequest(req: IncomingMessage, res: ServerResp
     
     // Compile the temporary file
     const result = await compileFile(filePath);
+    if(result.length === 0) {
+      res.writeHead(500, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'Compilation produced no output' }));
+      return;
+    }
     
     res.writeHead(200, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ success: true, output: result }));

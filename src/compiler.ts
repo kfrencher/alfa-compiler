@@ -1,9 +1,10 @@
-import fs from 'fs/promises';
-import fsSync from 'fs';
-import path from 'path';
+import * as fs from 'fs/promises';
+import * as fsSync from 'fs';
+import * as path from 'path';
 import { AlfaLanguageServerClient, LanguageServerConfig } from './language-server-client.js';
 import { fileURLToPath } from 'url';
 import { FileChangeType } from 'vscode-languageserver-protocol';
+import { CompiledFile } from './language-server-client.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -18,10 +19,29 @@ export class AlfaCompiler {
     this.languageServerClient = new AlfaLanguageServerClient(this.getLanguageServerConfig());
   }
 
+  async compileFiles(files: string[]): Promise<CompiledFile[]> {
+    if (!files || files.length === 0) {
+      throw new Error('No files provided for compilation');
+    }
+
+    for (const inputFile of files) {
+      const stats = await fs.stat(inputFile);
+      if (!stats.isFile()) {
+        throw new Error(`Input path is not a file: ${inputFile}`);
+      }
+
+      if (!fsSync.existsSync(inputFile)) {
+        throw new Error(`Input file not found: ${inputFile}`);
+      }
+    }
+
+    return this.languageServerClient.compileFiles(files);
+  }
+
   /**
    * Compile an ALFA policy file
    */
-  async compile(inputFile: string): Promise<string[]> {
+  async compile(inputFile: string): Promise<CompiledFile[]> {
     console.log(`Compiling ALFA file: ${inputFile}`);
 
     const stats = await fs.stat(inputFile);
@@ -116,28 +136,48 @@ export async function notifyDeletedFile(filePath: string): Promise<void> {
 /**
  * Use the AlfaCompiler instance to compile a file and return the output
  */
-export async function compileFile(filename: string): Promise<string> {
-  if (!filename.trim()) {
-    console.log('Please provide a filename');
-    return '';
+export async function compileFile(filename: string): Promise<CompiledFile[]> {
+  return compileFiles([filename]);
+}
+/**
+ * Use the AlfaCompiler instance to compile files and return the output
+ */
+export async function compileFiles(filenames: string[]): Promise<CompiledFile[]> {
+  if (!filenames || filenames.length === 0) {
+    throw new Error('Please provide at least one filename');
+  }
+
+  for (const filename of filenames) {
+    if (!filename.trim()) {
+      throw new Error('Please provide a filename');
+    }
   }
 
   try {
-    console.log(`Compiling: ${filename}`);
-    const result = await compiler.compile(filename.trim());
+    console.log(`Compiling: ${filenames.join(', ')}`);
+
+    let result: CompiledFile[] = [];
+
+    if (filenames.length === 1) {
+      const fileName = filenames[0];
+      if (!fileName) throw new Error('Filename is empty');
+      result = await compiler.compile(fileName);
+    } else {
+      result = await compiler.compileFiles(filenames);
+    }
 
     if (result && result.length > 0) {
-      console.log('Compilation successful!');
-      console.log('Output:');
+      console.debug('Compilation successful!');
+      console.debug('Output:');
       result.forEach((output, index) => {
-        console.log(`--- Result ${index + 1} ---`);
-        console.log(output);
-        console.log('--- End Result ---\n');
+        console.debug(`--- Result ${index + 1} ---`);
+        console.debug(output);
+        console.debug('--- End Result ---\n');
       });
-      return result.join('\n');
+      return result;
     } else {
-      console.log('Compilation completed with no output');
-      return '';
+      console.error('Compilation completed with no output');
+      return [];
     }
   } catch (error) {
     console.error('Compilation failed:', error instanceof Error ? error.message : String(error));

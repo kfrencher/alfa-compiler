@@ -3,16 +3,25 @@ import { createServer } from 'http';
 import { parse } from 'url';
 import { IncomingMessage, ServerResponse } from 'http';
 import { handleCompileRequest } from './request-compile.js';
+import { handleCompileMultipleRequest } from './request-compile-multiple.js';
 
 // Simple web server
 const server = createServer(async (req: IncomingMessage, res: ServerResponse) => {
   const { pathname, query } = parse(req.url || '', true);
 
-  if (pathname === '/compile') {
-    handleCompileRequest(req, res);
-  } else {
-    res.writeHead(404, { 'Content-Type': 'text/plain' });
-    res.end('Not found');
+  switch (pathname) {
+    case '/compile':
+      handleCompileRequest(req, res);
+      break;
+
+    case '/compile-multiple':
+      handleCompileMultipleRequest(req, res);
+      break;
+
+    default:
+      res.writeHead(404, { 'Content-Type': 'text/plain' });
+      res.end('Not found');
+      break;
   }
 });
 

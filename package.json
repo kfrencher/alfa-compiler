@@ -14,14 +14,14 @@
     "start": "npm run build && node dist/index.js",
     "dev": "npm run build && node dist/index.js examples/sample-policy.alfa -o output/compiled.js",
     "test": "npm run build && vitest run",
+    "test:debug": "npm run build && cross-env DEBUG=true vitest run",
     "test:watch": "npm run build && vitest",
     "test:coverage": "npm run build && vitest run --coverage",
     "clean": "rm -rf dist",
     "prepublishOnly": "npm run clean && npm run build",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "format:check": "prettier --check \"src/**/*.ts\" \"test/**/*.ts\"",
-    "global-install": "npm run build && npm install -g .",
-    "global-uninstall": "npm uninstall -g alfa-compiler"
+    "global-install": "npm run build && npm pack && npm i -g alfa-compiler-1.0.0.tgz"
   },
   "files": [
     "dist/",
@@ -53,6 +53,7 @@
     "vscode-jsonrpc": "^8.2.1",
     "vscode-languageserver-protocol": "^3.17.5",
     "vscode-languageserver-types": "^3.17.5",
-    "vscode-uri": "^3.1.0"
+    "vscode-uri": "^3.1.0",
+    "xml-formatter": "^3.6.7"
   }
 }

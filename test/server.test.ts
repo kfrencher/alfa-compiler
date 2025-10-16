@@ -1,7 +1,12 @@
 import { describe, test, expect, beforeAll, afterAll } from 'vitest';
 import { spawn, ChildProcess } from 'child_process';
 import { readFile } from 'fs/promises';
-import path from 'path';
+import * as path from 'path';
+import { multiFileAlfaPolicy } from './resources/policies/multi-file-policy';
+import { CompiledFile } from '../src/language-server-client';
+import { fail } from 'assert';
+
+const debug = process.env.DEBUG === 'true' || false;
 
 describe('HTTP Server', () => {
   let serverProcess: ChildProcess;
@@ -34,6 +39,15 @@ describe('HTTP Server', () => {
         clearTimeout(timeout);
         reject(new Error(`Server error: ${data.toString()}`));
       });
+
+      if(debug) {
+        serverProcess.stdout?.on('data', (data) => {
+          console.log('Server output:', data.toString());
+        });
+        serverProcess.stderr?.on('data', (data) => {
+          console.log('Server error output:', data.toString());
+        });
+      }
     });
   }, 10000);
 
@@ -127,9 +141,45 @@ describe('HTTP Server', () => {
     expect(json.output).toBeDefined();
 
     const output = json.output;
-    expect(output).toContain('xacml3:Policy');
-    expect(output).toContain('xacml3:Target');
-    expect(output).toContain('xacml3:Rule');
-    expect(output).toContain('http://axiomatics.com/alfa/identifier/testTxt.validPolicy');
+    expect(output).to.be.an('array').that.is.not.empty;
+    expect(output.length).toBe(1);
+
+    const firstOutput = output[0];
+    const content = firstOutput.content;
+    expect(content).toContain('xacml3:Policy');
+    expect(content).toContain('xacml3:Target');
+    expect(content).toContain('xacml3:Rule');
+    expect(content).toContain('http://axiomatics.com/alfa/identifier/testTxt.validPolicy');
+  });
+
+  test('should compile valid multifile ALFA content', async () => {
+    const alfaContent = JSON.stringify(multiFileAlfaPolicy, null, 4);
+    // const alfaContent = '';
+
+    const response = await fetch(`${baseUrl}/compile-multiple`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: alfaContent,
+    });
+
+    expect(response.status).toBe(200);
+
+    const json = await response.json() as { success: boolean; output: CompiledFile[] };
+    expect(json.success).toBe(true);
+    expect(json.output).toBeDefined();
+
+    const output = json.output;
+    expect(output).to.be.an('array').that.is.not.empty;
+    expect(output.length).toBe(3);
+    const root = output.find(f => f.fileName === 'system_a.root.xml');
+    if(!root) fail('Root policy not found in output');
+
+    const content = root.content;
+    expect(content).toContain('xacml3:Policy');
+    expect(content).toContain('xacml3:Target');
+    expect(content).toContain('system_a.person');
+    expect(content).toContain('system_a.group');
   });
 });
