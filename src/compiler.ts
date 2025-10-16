@@ -5,7 +5,9 @@ import { AlfaLanguageServerClient, LanguageServerConfig } from './language-serve
 import { fileURLToPath } from 'url';
 import { FileChangeType } from 'vscode-languageserver-protocol';
 import { CompiledFile } from './language-server-client.js';
+import { createLogger } from './logger.js';
 
+const logger = createLogger('AlfaCompiler');
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
@@ -42,7 +44,7 @@ export class AlfaCompiler {
    * Compile an ALFA policy file
    */
   async compile(inputFile: string): Promise<CompiledFile[]> {
-    console.log(`Compiling ALFA file: ${inputFile}`);
+    logger.info(`Compiling ALFA file: ${inputFile}`);
 
     const stats = await fs.stat(inputFile);
     if (!stats.isFile()) {
@@ -123,12 +125,12 @@ export class AlfaCompiler {
 export const compiler = await (async function () {
   const compiler = new AlfaCompiler();
   try {
-    console.log('Initializing ALFA compiler...');
+    logger.info('Initializing ALFA compiler...');
     await compiler.initialize();
-    console.log('ALFA compiler ready!');
+    logger.info('ALFA compiler ready!');
     return compiler;
   } catch (error) {
-    console.error('Failed to initialize compiler:', error);
+    logger.error('Failed to initialize compiler:', error);
     process.exit(1);
   }
 })();
@@ -168,7 +170,7 @@ export async function compileFiles(filenames: string[]): Promise<CompiledFile[]>
   }
 
   try {
-    console.log(`Compiling: ${filenames.join(', ')}`);
+    logger.info(`Compiling: ${filenames.join(', ')}`);
 
     let result: CompiledFile[] = [];
 
@@ -181,20 +183,20 @@ export async function compileFiles(filenames: string[]): Promise<CompiledFile[]>
     }
 
     if (result && result.length > 0) {
-      console.debug('Compilation successful!');
-      console.debug('Output:');
+      logger.debug('Compilation successful!');
+      logger.debug('Output:');
       result.forEach((output, index) => {
-        console.debug(`--- Result ${index + 1} ---`);
-        console.debug(output);
-        console.debug('--- End Result ---\n');
+        logger.debug(`--- Result ${index + 1} ---`);
+        logger.debug(output);
+        logger.debug('--- End Result ---\n');
       });
       return result;
     } else {
-      console.error('Compilation completed with no output');
+      logger.error('Compilation completed with no output');
       return [];
     }
   } catch (error) {
-    console.error('Compilation failed:', error instanceof Error ? error.message : String(error));
+    logger.error('Compilation failed:', error instanceof Error ? error.message : String(error));
     throw error;
   }
 }

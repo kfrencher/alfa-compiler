@@ -1,11 +1,13 @@
-import { compileFile, notifyDeletedFile } from './compiler.js';
-import { IncomingMessage, ServerResponse } from 'http';
-import { writeFile, rm, stat } from 'fs/promises';
 import { createWriteStream } from 'fs';
-import { join, dirname, resolve } from 'path';
-import { fileURLToPath } from 'url';
+import { rm, stat } from 'fs/promises';
+import { IncomingMessage, ServerResponse } from 'http';
+import { dirname, join, resolve } from 'path';
 import { pipeline } from 'stream/promises';
+import { fileURLToPath } from 'url';
+import { compileFile, notifyDeletedFile } from './compiler.js';
+import { createLogger } from './logger.js';
 
+const logger = createLogger('request-compile.ts');
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 const packageRoot = resolve(__dirname, '..');
@@ -55,7 +57,7 @@ export async function handleCompileRequest(req: IncomingMessage, res: ServerResp
       return;
     }
     
-    console.log(`Processing uploaded file: ${filePath} (${fileStats.size} bytes)`);
+    logger.info(`Processing uploaded file: ${filePath} (${fileStats.size} bytes)`);
     
     // Compile the temporary file
     const result = await compileFile(filePath);
@@ -69,7 +71,7 @@ export async function handleCompileRequest(req: IncomingMessage, res: ServerResp
     res.end(JSON.stringify({ success: true, output: result }));
 
   } catch (error) {
-    console.error('File upload compilation error:', error);
+    logger.error('File upload compilation error:', error);
     res.writeHead(400, { 'Content-Type': 'application/json' });
     res.end(JSON.stringify({ 
       error: error instanceof Error ? error.message : String(error) 
@@ -80,9 +82,9 @@ export async function handleCompileRequest(req: IncomingMessage, res: ServerResp
       try {
         await rm(filePath, { force: true });
         await notifyDeletedFile(filePath);
-        console.log(`Cleaned up temporary file: ${filePath}`);
+        logger.info(`Cleaned up temporary file: ${filePath}`);
       } catch (cleanupError) {
-        console.warn('Failed to clean up temporary files:', cleanupError);
+        logger.warn('Failed to clean up temporary files:', cleanupError);
       }
     }
   }

@@ -6,6 +6,7 @@ import { multiFileAlfaPolicy } from './resources/policies/multi-file-policy';
 import { CompiledFile } from '../src/language-server-client';
 import { fail } from 'assert';
 import { delay } from '../src/utils';
+import { logger } from '../src/logger';
 
 const debug = process.env.DEBUG === 'true' || false;
 
@@ -16,7 +17,7 @@ describe('HTTP Server', () => {
 
   beforeAll(async () => {
     // Then start the server directly
-    console.log('Starting server...');
+    logger.info('Starting server...');
     serverProcess = spawn('node', ['dist/index.js'], {
       stdio: 'pipe',
     });
@@ -30,7 +31,7 @@ describe('HTTP Server', () => {
       serverProcess.stdout?.on('data', (data) => {
         const output = data.toString();
         if (output.includes('Server running on')) {
-          console.log('Server started successfully');
+          logger.info('Server started successfully');
           clearTimeout(timeout);
           resolve(undefined);
         }
@@ -43,10 +44,10 @@ describe('HTTP Server', () => {
 
       if(debug) {
         serverProcess.stdout?.on('data', (data) => {
-          console.log('Server output:', data.toString());
+          logger.info('Server output:', data.toString());
         });
         serverProcess.stderr?.on('data', (data) => {
-          console.log('Server error output:', data.toString());
+          logger.info('Server error output:', data.toString());
         });
       }
     });
@@ -55,19 +56,19 @@ describe('HTTP Server', () => {
   afterAll(async () => {
     // Stop the server
     if (serverProcess) {
-      console.log('Stopping server...');
+      logger.info('Stopping server...');
       serverProcess.kill('SIGTERM');
 
       // Wait for "server closed" message or process exit
       await new Promise((resolve) => {
         serverProcess.on('exit', () => {
-          console.log('Server process exited');
+          logger.info('Server process exited');
           // Give some time for cleanup
           delay(3000).then(() => resolve(undefined));
         });
 
         delay(5000).then(() => {
-          console.error('Server did not shut down gracefully, killed forcefully');
+          logger.error('Server did not shut down gracefully, killed forcefully');
           serverProcess.kill('SIGKILL');
           resolve(undefined);
         });

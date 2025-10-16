@@ -5,7 +5,9 @@ import { fileURLToPath } from 'url';
 import { compileFiles, notifyDeletedFiles } from './compiler.js';
 import { CompiledFile } from './language-server-client.js';
 import { delay } from './utils.js';
+import { createLogger } from './logger.js';
 
+const logger = createLogger('request-compile-multiple.ts');
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -88,9 +90,9 @@ export async function handleCompileMultipleRequest(req: IncomingMessage, res: Se
       for(const tempFilePath of tempFilePaths) {
         try {
           await rm(tempFilePath, { force: true });
-          console.log(`Cleaned up temporary file: ${tempFilePath}`);
+          logger.info(`Cleaned up temporary file: ${tempFilePath}`);
         } catch (cleanupError) {
-          console.warn('Failed to clean up temporary files:', cleanupError);
+          logger.warn('Failed to clean up temporary files:', cleanupError);
         }
       }
       await delay(500);

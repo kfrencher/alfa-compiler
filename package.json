@@ -14,7 +14,7 @@
     "start": "npm run build && node dist/index.js",
     "dev": "npm run build && node dist/index.js examples/sample-policy.alfa -o output/compiled.js",
     "test": "npm run build && vitest run",
-    "test:debug": "npm run build && cross-env DEBUG=true vitest run",
+    "test:debug": "npm run build && cross-env LOG_LEVEL=debug vitest run",
     "test:watch": "npm run build && vitest",
     "test:coverage": "npm run build && vitest run --coverage",
     "clean": "rm -rf dist",
@@ -45,6 +45,7 @@
   },
   "devDependencies": {
     "@types/node": "^20.19.21",
+    "cross-env": "^7.0.3",
     "prettier": "^3.6.2",
     "typescript": "^5.9.3",
     "vitest": "^3.2.4"
@@ -54,6 +55,7 @@
     "vscode-languageserver-protocol": "^3.17.5",
     "vscode-languageserver-types": "^3.17.5",
     "vscode-uri": "^3.1.0",
+    "winston": "^3.18.3",
     "xml-formatter": "^3.6.7"
   }
 }
