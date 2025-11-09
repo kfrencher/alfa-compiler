@@ -62,14 +62,14 @@ export class AlfaCompiler {
    * Allows clients to notify the language server that a file was deleted
    */
   async notifyDeletedFiles(filePaths: string[]): Promise<void> {
-    this.languageServerClient.didChangeWatchedFiles(filePaths, FileChangeType.Deleted);
+    return this.languageServerClient.didChangeWatchedFiles(filePaths, FileChangeType.Deleted);
   }
 
   /**
    * Allows clients to notify the language server that a file was deleted
    */
   async notifyDeletedFile(filePath: string): Promise<void> {
-    this.languageServerClient.didChangeWatchedFiles(filePath, FileChangeType.Deleted);
+    return this.languageServerClient.didChangeWatchedFiles(filePath, FileChangeType.Deleted);
   }
 
   /**

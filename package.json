@@ -9,8 +9,8 @@
     "alfa-compiler": "./dist/index.js"
   },
   "scripts": {
-    "build": "tsc",
-    "build:watch": "tsc --watch",
+    "build": "npm run clean && tsc",
+    "build:watch": "npm run clean && tsc --watch",
     "start": "npm run build && node dist/index.js",
     "dev": "npm run build && node dist/index.js examples/sample-policy.alfa -o output/compiled.js",
     "test": "npm run build && vitest run",
@@ -21,6 +21,8 @@
     "prepublishOnly": "npm run clean && npm run build",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "format:check": "prettier --check \"src/**/*.ts\" \"test/**/*.ts\"",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
     "global-install": "npm run build && npm pack && npm i -g alfa-compiler-1.0.0.tgz"
   },
   "files": [
@@ -44,10 +46,16 @@
     "node": ">=16.0.0"
   },
   "devDependencies": {
+    "@eslint/js": "^9.39.1",
     "@types/node": "^20.19.21",
+    "@typescript-eslint/eslint-plugin": "^8.46.3",
+    "@typescript-eslint/parser": "^8.46.3",
     "cross-env": "^7.0.3",
+    "eslint": "^9.39.1",
+    "eslint-plugin-unused-imports": "^4.3.0",
     "prettier": "^3.6.2",
     "typescript": "^5.9.3",
+    "typescript-eslint": "^8.46.3",
     "vitest": "^3.2.4"
   },
   "dependencies": {

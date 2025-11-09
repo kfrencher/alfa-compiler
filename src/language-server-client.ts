@@ -1,27 +1,26 @@
-import { ChildProcess, spawn } from 'child_process';
-import * as fs from 'fs/promises';
-import * as path from 'path';
+import { ChildProcess, spawn } from "child_process";
+import * as fs from "fs/promises";
+import * as path from "path";
 import {
   createMessageConnection,
   Logger,
   MessageConnection,
   StreamMessageReader,
   StreamMessageWriter,
-} from 'vscode-jsonrpc/node.js';
+} from "vscode-jsonrpc/node.js";
 import {
   ClientCapabilities,
   Diagnostic,
   InitializeParams,
   InitializeResult,
   PublishDiagnosticsParams,
-} from 'vscode-languageserver-protocol';
-import { URI } from 'vscode-uri';
-import { FileChangeType } from 'vscode-languageserver-protocol';
-import { fileURLToPath } from 'url';
-import { formatXml } from './xml-utils.js';
-import { delay } from './utils.js';
-import { createLogger } from './logger.js';
-import { log } from 'console';
+} from "vscode-languageserver-protocol";
+import { URI } from "vscode-uri";
+import { FileChangeType } from "vscode-languageserver-protocol";
+import { fileURLToPath } from "url";
+import { formatXml } from "./xml-utils.js";
+import { delay } from "./utils.js";
+import { createLogger } from "./logger.js";
 
 export interface LanguageServerConfig {
   command: string;
@@ -44,18 +43,16 @@ export class AlfaLanguageServerClient {
   private serverProcess: ChildProcess | null = null;
   private isInitialized = false;
   private diagnostics: Map<string, Diagnostic[]> = new Map();
-  private outputDir = path.join(path.resolve(__dirname, '..'), 'src-gen');
-  private logger = createLogger('AlfaLanguageServerClient');
+  private outputDir = path.join(path.resolve(__dirname, ".."), "src-gen");
+  private logger = createLogger("AlfaLanguageServerClient");
 
   constructor(private config: LanguageServerConfig) {
     // Start the language server process
-    this.logger.info(
-      `Starting language server with command: ${this.config.command} ${this.config.args.join(' ')}`
-    );
+    this.logger.info(`Starting language server with command: ${this.config.command} ${this.config.args.join(" ")}`);
     this.serverProcess = spawn(this.config.command, this.config.args);
 
     if (!this.serverProcess.stdout || !this.serverProcess.stdin) {
-      throw new Error('Failed to create language server process streams');
+      throw new Error("Failed to create language server process streams");
     }
 
     // Create message connection
@@ -63,10 +60,10 @@ export class AlfaLanguageServerClient {
     const writer = new StreamMessageWriter(this.serverProcess.stdin);
 
     this.connection = createMessageConnection(reader, writer, {
-      error: (message: string) => this.logger.error('LSP Error:', message),
-      warn: (message: string) => this.logger.warn('LSP Warning:', message),
-      info: (message: string) => this.logger.info('LSP Info:', message),
-      log: (message: string) => this.logger.info('LSP Log:', message),
+      error: (message: string) => this.logger.error("LSP Error:", message),
+      warn: (message: string) => this.logger.warn("LSP Warning:", message),
+      info: (message: string) => this.logger.info("LSP Info:", message),
+      log: (message: string) => this.logger.info("LSP Log:", message),
     } as Logger);
 
     // Set up event handlers
@@ -81,10 +78,10 @@ export class AlfaLanguageServerClient {
    */
   async initialize(): Promise<InitializeResult> {
     if (this.isInitialized) {
-      throw new Error('Language server is already initialized');
+      throw new Error("Language server is already initialized");
     }
 
-    this.logger.info('Initializing language server...');
+    this.logger.info("Initializing language server...");
 
     const initParams: InitializeParams = {
       processId: process.pid,
@@ -93,18 +90,18 @@ export class AlfaLanguageServerClient {
       workspaceFolders: [
         {
           uri: URI.file(`${this.config.cwd}`).toString(),
-          name: 'workspace',
+          name: "workspace",
         },
       ],
     };
 
     this.logger.info(`Language server initialization params:\n${JSON.stringify(initParams, null, 4)}`);
     try {
-      const result: InitializeResult = await this.connection.sendRequest('initialize', initParams);
-      this.logger.info('Language server initialized...');
+      const result: InitializeResult = await this.connection.sendRequest("initialize", initParams);
+      this.logger.info("Language server initialized...");
       this.logger.info(`Language server capabilities:\n${JSON.stringify(result.capabilities, null, 4)}`);
       this.isInitialized = true;
-      await this.connection.sendNotification('initialized', {});
+      await this.connection.sendNotification("initialized", {});
       await delay(this.afterInitializeDelay); // Wait a moment for the server to be fully ready
       return result;
     } catch (error) {
@@ -122,9 +119,7 @@ export class AlfaLanguageServerClient {
     this.diagnostics.clear();
     await this.clearCompilationOutputDir();
     if (!this.isReady()) {
-      throw new Error(
-        'Language server is not initialized. Please call initialize() before compiling.'
-      );
+      throw new Error("Language server is not initialized. Please call initialize() before compiling.");
     }
 
     await this.didChangeWatchedFiles(inputFiles, FileChangeType.Changed);
@@ -137,18 +132,17 @@ export class AlfaLanguageServerClient {
       const errorDiagnostics = allDiagnostics.filter((diag) => diag.severity === 1);
       if (errorDiagnostics.length > 0) {
         const errorMessages = errorDiagnostics.map(
-          (diag) =>
-            `Line ${diag.range.start.line + 1}, Col ${diag.range.start.character + 1}: ${diag.message}`
+          (diag) => `Line ${diag.range.start.line + 1}, Col ${diag.range.start.character + 1}: ${diag.message}`
         );
-        const errorOutput = `Compilation failed with errors:\n${errorMessages.join('\n')}`;
+        const errorOutput = `Compilation failed with errors:\n${errorMessages.join("\n")}`;
         this.logger.error(errorOutput);
         throw new Error(errorOutput);
       }
     }
     const compiledResult = await this.getCompilationOutput();
-    this.clearCompilationOutputDir(); // Clean up after reading
+    await this.clearCompilationOutputDir(); // Clean up after reading
 
-    this.logger.debug('Compiled result:\n' + JSON.stringify(compiledResult, null, 4));
+    this.logger.debug("Compiled result:\n" + JSON.stringify(compiledResult, null, 4));
     return compiledResult;
   }
 
@@ -160,9 +154,7 @@ export class AlfaLanguageServerClient {
     this.diagnostics.clear();
     await this.clearCompilationOutputDir();
     if (!this.isReady()) {
-      throw new Error(
-        'Language server is not initialized. Please call initialize() before compiling.'
-      );
+      throw new Error("Language server is not initialized. Please call initialize() before compiling.");
     }
 
     await this.didChangeWatchedFiles(inputFile, FileChangeType.Changed);
@@ -175,18 +167,17 @@ export class AlfaLanguageServerClient {
       const errorDiagnostics = allDiagnostics.filter((diag) => diag.severity === 1);
       if (errorDiagnostics.length > 0) {
         const errorMessages = errorDiagnostics.map(
-          (diag) =>
-            `Line ${diag.range.start.line + 1}, Col ${diag.range.start.character + 1}: ${diag.message}`
+          (diag) => `Line ${diag.range.start.line + 1}, Col ${diag.range.start.character + 1}: ${diag.message}`
         );
-        const errorOutput = `Compilation failed with errors:\n${errorMessages.join('\n')}`;
+        const errorOutput = `Compilation failed with errors:\n${errorMessages.join("\n")}`;
         this.logger.error(errorOutput);
         throw new Error(errorOutput);
       }
     }
     const compiledResult = await this.getCompilationOutput();
-    this.clearCompilationOutputDir(); // Clean up after reading
+    await this.clearCompilationOutputDir(); // Clean up after reading
 
-    this.logger.debug('Compiled result:\n' + JSON.stringify(compiledResult, null, 4));
+    this.logger.debug("Compiled result:\n" + JSON.stringify(compiledResult, null, 4));
     return compiledResult;
   }
 
@@ -227,7 +218,7 @@ export class AlfaLanguageServerClient {
             },
           ];
 
-    return this.connection.sendNotification('workspace/didChangeWatchedFiles', {
+    return this.connection.sendNotification("workspace/didChangeWatchedFiles", {
       changes: changes,
     });
   }
@@ -237,7 +228,7 @@ export class AlfaLanguageServerClient {
    */
   async getCompilationOutput(): Promise<CompiledFile[]> {
     if (!this.connection) {
-      throw new Error('Language server connection not available');
+      throw new Error("Language server connection not available");
     }
 
     // Read all files in output directory
@@ -248,7 +239,7 @@ export class AlfaLanguageServerClient {
       for (const file of files) {
         const fullPath = path.join(outputDir, file);
         try {
-          const content = await fs.readFile(fullPath, 'utf-8');
+          const content = await fs.readFile(fullPath, "utf-8");
           outputs.push({
             fileName: file,
             content: formatXml(content),
@@ -261,9 +252,7 @@ export class AlfaLanguageServerClient {
       }
       return outputs;
     } catch (error) {
-      throw new Error(
-        `Failed to read output directory: ${error instanceof Error ? error.message : String(error)}`
-      );
+      throw new Error(`Failed to read output directory: ${error instanceof Error ? error.message : String(error)}`);
     }
   }
 
@@ -274,10 +263,10 @@ export class AlfaLanguageServerClient {
     try {
       if (this.connection && this.isInitialized) {
         // Send shutdown request
-        await this.connection.sendRequest('shutdown', null);
+        await this.connection.sendRequest("shutdown", null);
 
         // Send exit notification
-        await this.connection.sendNotification('exit');
+        await this.connection.sendNotification("exit");
 
         // Dispose connection
         this.connection.dispose();
@@ -291,9 +280,9 @@ export class AlfaLanguageServerClient {
       this.isInitialized = false;
       this.diagnostics.clear();
 
-      this.logger.info('Language server stopped');
+      this.logger.info("Language server stopped");
     } catch (error) {
-      this.logger.error('Error stopping language server:', error);
+      this.logger.error("Error stopping language server:", error);
     }
   }
 
@@ -311,22 +300,19 @@ export class AlfaLanguageServerClient {
     if (!this.connection) return;
 
     // Handle diagnostics
-    this.connection.onNotification(
-      'textDocument/publishDiagnostics',
-      (params: PublishDiagnosticsParams) => {
-        this.diagnostics.set(params.uri, params.diagnostics);
-        this.logger.debug(`Received ${params.diagnostics.length} diagnostics for ${params.uri}`);
-      }
-    );
+    this.connection.onNotification("textDocument/publishDiagnostics", (params: PublishDiagnosticsParams) => {
+      this.diagnostics.set(params.uri, params.diagnostics);
+      this.logger.debug(`Received ${params.diagnostics.length} diagnostics for ${params.uri}`);
+    });
 
     // Handle server errors
     this.connection.onError((error) => {
-      this.logger.error('Language server error:', error);
+      this.logger.error("Language server error:", error);
     });
 
     // Handle server close
     this.connection.onClose(() => {
-      this.logger.info('Language server connection closed');
+      this.logger.info("Language server connection closed");
       this.isInitialized = false;
     });
   }
