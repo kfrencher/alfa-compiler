@@ -1,21 +1,21 @@
-import * as fs from 'fs/promises';
-import * as fsSync from 'fs';
-import * as path from 'path';
-import { AlfaLanguageServerClient, LanguageServerConfig } from './language-server-client.js';
-import { fileURLToPath } from 'url';
-import { FileChangeType } from 'vscode-languageserver-protocol';
-import { CompiledFile } from './language-server-client.js';
-import { createLogger } from './logger.js';
+import * as fs from "fs/promises";
+import * as fsSync from "fs";
+import * as path from "path";
+import { AlfaLanguageServerClient, LanguageServerConfig } from "./language-server-client.js";
+import { fileURLToPath } from "url";
+import { FileChangeType } from "vscode-languageserver-protocol";
+import { CompiledFile } from "./language-server-client.js";
+import { createLogger } from "./logger.js";
 
-const logger = createLogger('AlfaCompiler');
+const logger = createLogger("AlfaCompiler");
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 export class AlfaCompiler {
   private languageServerClient: AlfaLanguageServerClient;
   private enableDebug = true;
-  private packageRoot = path.resolve(__dirname, '..');
-  private languageServerPath = path.join(this.packageRoot, 'server', 'alfa-language-server.jar');
+  private packageRoot = path.resolve(__dirname, "..");
+  private languageServerPath = path.join(this.packageRoot, "server", "alfa-language-server.jar");
 
   constructor() {
     this.languageServerClient = new AlfaLanguageServerClient(this.getLanguageServerConfig());
@@ -23,7 +23,7 @@ export class AlfaCompiler {
 
   async compileFiles(files: string[]): Promise<CompiledFile[]> {
     if (!files || files.length === 0) {
-      throw new Error('No files provided for compilation');
+      throw new Error("No files provided for compilation");
     }
 
     for (const inputFile of files) {
@@ -102,16 +102,17 @@ export class AlfaCompiler {
    */
   private getLanguageServerConfig(): LanguageServerConfig {
     const serverPath = this.languageServerPath;
+    logger.info("Using ALFA language server jar at: " + serverPath);
     if (!fsSync.existsSync(serverPath)) {
       throw new Error(`ALFA language server jar not found at: ${serverPath}`);
     }
 
-    const javaPath = 'java';
+    const javaPath = "java";
 
-    const args = ['-jar', serverPath];
+    const args = ["-jar", serverPath];
     if (this.enableDebug) {
-      args.push('-trace');
-      args.push('-log');
+      args.push("-trace");
+      args.push("-log");
     }
 
     return {
@@ -125,12 +126,12 @@ export class AlfaCompiler {
 export const compiler = await (async function () {
   const compiler = new AlfaCompiler();
   try {
-    logger.info('Initializing ALFA compiler...');
+    logger.info("Initializing ALFA compiler...");
     await compiler.initialize();
-    logger.info('ALFA compiler ready!');
+    logger.info("ALFA compiler ready!");
     return compiler;
   } catch (error) {
-    logger.error('Failed to initialize compiler:', error);
+    logger.error("Failed to initialize compiler:", error);
     process.exit(1);
   }
 })();
@@ -160,43 +161,43 @@ export async function compileFile(filename: string): Promise<CompiledFile[]> {
  */
 export async function compileFiles(filenames: string[]): Promise<CompiledFile[]> {
   if (!filenames || filenames.length === 0) {
-    throw new Error('Please provide at least one filename');
+    throw new Error("Please provide at least one filename");
   }
 
   for (const filename of filenames) {
     if (!filename.trim()) {
-      throw new Error('Please provide a filename');
+      throw new Error("Please provide a filename");
     }
   }
 
   try {
-    logger.info(`Compiling: ${filenames.join(', ')}`);
+    logger.info(`Compiling: ${filenames.join(", ")}`);
 
     let result: CompiledFile[] = [];
 
     if (filenames.length === 1) {
       const fileName = filenames[0];
-      if (!fileName) throw new Error('Filename is empty');
+      if (!fileName) throw new Error("Filename is empty");
       result = await compiler.compile(fileName);
     } else {
       result = await compiler.compileFiles(filenames);
     }
 
     if (result && result.length > 0) {
-      logger.debug('Compilation successful!');
-      logger.debug('Output:');
+      logger.debug("Compilation successful!");
+      logger.debug("Output:");
       result.forEach((output, index) => {
         logger.debug(`--- Result ${index + 1} ---`);
         logger.debug(output);
-        logger.debug('--- End Result ---\n');
+        logger.debug("--- End Result ---\n");
       });
       return result;
     } else {
-      logger.error('Compilation completed with no output');
+      logger.error("Compilation completed with no output");
       return [];
     }
   } catch (error) {
-    logger.error('Compilation failed:', error instanceof Error ? error.message : String(error));
+    logger.error("Compilation failed:", error instanceof Error ? error.message : String(error));
     throw error;
   }
 }

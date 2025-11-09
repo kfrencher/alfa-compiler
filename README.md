@@ -68,10 +68,10 @@ node dist/index.js examples/sample-policy.alfa --java /path/to/java
 ### Programmatic Usage
 
 ```javascript
-const AlfaCompiler = require('./src/compiler');
+const AlfaCompiler = require("./src/compiler");
 
 const compiler = new AlfaCompiler();
-compiler.compile('input.alfa', 'output.js');
+compiler.compile("input.alfa", "output.js");
 ```
 
 ## Project Structure
