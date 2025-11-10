@@ -18,9 +18,9 @@ import {
 import { URI } from "vscode-uri";
 import { FileChangeType } from "vscode-languageserver-protocol";
 import { fileURLToPath } from "url";
-import { formatXml } from "./xml-utils.js";
-import { delay } from "./utils.js";
-import { createLogger } from "./logger.js";
+import { formatXml } from "@/xml-utils";
+import { delay } from "@/utils";
+import { createLogger } from "@/logger";
 
 export interface LanguageServerConfig {
   command: string;

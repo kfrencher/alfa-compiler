@@ -2,10 +2,10 @@
 import { createServer } from "http";
 import { parse } from "url";
 import { IncomingMessage, ServerResponse } from "http";
-import { handleCompileRequest } from "./request-compile.js";
-import { handleCompileMultipleRequest } from "./request-compile-multiple.js";
-import { createLogger } from "./logger.js";
-import { CompiledFile } from "./language-server-client.js";
+import { handleCompileRequest } from "@/request-compile";
+import { handleCompileMultipleRequest } from "@/request-compile-multiple";
+import { createLogger } from "@/logger";
+import { CompiledFile } from "@/language-server-client";
 
 export type CompileResponse =
   | {

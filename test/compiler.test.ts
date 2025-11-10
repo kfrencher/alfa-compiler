@@ -1,6 +1,6 @@
 import * as path from "path";
 import { describe, beforeAll, test, expect } from "vitest";
-import { AlfaCompiler } from "../src/compiler";
+import { AlfaCompiler } from "@/compiler";
 
 describe("AlfaCompiler", () => {
   let compiler: AlfaCompiler;

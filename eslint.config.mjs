@@ -1,17 +1,16 @@
-// @ts-check
-
 import eslint from "@eslint/js";
 import tseslint from "typescript-eslint";
 import unusedImports from "eslint-plugin-unused-imports";
+import { defineConfig } from "eslint/config";
 
-export default tseslint.config(
+export default defineConfig([
   eslint.configs.recommended,
   {
     files: ["src/**/*.ts"],
     extends: [...tseslint.configs.recommendedTypeChecked],
     languageOptions: {
       parserOptions: {
-        project: "./tsconfig.json",
+        project: "./src/tsconfig.json",
         tsconfigRootDir: import.meta.dirname,
       },
     },
@@ -37,7 +36,7 @@ export default tseslint.config(
     extends: [...tseslint.configs.recommendedTypeChecked],
     languageOptions: {
       parserOptions: {
-        project: "./tsconfig.test.json",
+        project: "./test/tsconfig.json",
         tsconfigRootDir: import.meta.dirname,
       },
     },
@@ -60,5 +59,5 @@ export default tseslint.config(
   },
   {
     ignores: ["dist/", "node_modules/", "src-gen/", "*.js", "*.mjs"],
-  }
-);
+  },
+]);

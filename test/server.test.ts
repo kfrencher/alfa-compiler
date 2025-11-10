@@ -2,12 +2,12 @@ import { describe, test, expect, beforeAll, afterAll } from "vitest";
 import { spawn, ChildProcess } from "child_process";
 import { readFile } from "fs/promises";
 import * as path from "path";
-import { multiFileAlfaPolicy } from "./resources/policies/multi-file-policy";
-import { CompiledFile } from "../src/language-server-client";
+import { multiFileAlfaPolicy } from "@test/resources/policies/multi-file-policy";
+import { CompiledFile } from "@/language-server-client";
 import { fail } from "assert";
-import { delay } from "../src/utils";
-import { logger } from "../src/logger";
-import { CompileResponse } from "../src/index";
+import { delay } from "@/utils";
+import { logger } from "@/logger";
+import { CompileResponse } from "@/index";
 
 const debug = process.env.DEBUG === "true" || false;
 

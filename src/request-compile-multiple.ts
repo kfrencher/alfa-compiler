@@ -2,10 +2,10 @@ import { rm, writeFile } from "fs/promises";
 import { IncomingMessage, ServerResponse } from "http";
 import { dirname, join, resolve } from "path";
 import { fileURLToPath } from "url";
-import { compileFiles, notifyDeletedFiles } from "./compiler.js";
-import { CompiledFile } from "./language-server-client.js";
-import { delay } from "./utils.js";
-import { createLogger } from "./logger.js";
+import { compileFiles, notifyDeletedFiles } from "@/compiler";
+import { CompiledFile } from "@/language-server-client";
+import { delay } from "@/utils";
+import { createLogger } from "@/logger";
 
 const logger = createLogger("request-compile-multiple.ts");
 

@@ -1,11 +1,11 @@
 import * as fs from "fs/promises";
 import * as fsSync from "fs";
 import * as path from "path";
-import { AlfaLanguageServerClient, LanguageServerConfig } from "./language-server-client.js";
+import { AlfaLanguageServerClient, LanguageServerConfig } from "@/language-server-client";
 import { fileURLToPath } from "url";
 import { FileChangeType } from "vscode-languageserver-protocol";
-import { CompiledFile } from "./language-server-client.js";
-import { createLogger } from "./logger.js";
+import { CompiledFile } from "@/language-server-client";
+import { createLogger } from "@/logger";
 
 const logger = createLogger("AlfaCompiler");
 const __filename = fileURLToPath(import.meta.url);
