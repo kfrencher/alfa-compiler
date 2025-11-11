@@ -9,14 +9,10 @@
     "alfa-compiler": "./dist/index.js"
   },
   "scripts": {
-    "build": "npm run clean && tsc -b src/tsconfig.json && tsc-alias -p src/tsconfig.json",
-    "build:watch": "npm run clean && tsc --watch",
+    "build": "npm run clean && tsc -b src/tsconfig.json && tsc-alias -p src/tsconfig.json && fix-esm-import-path dist",
     "start": "npm run build && node dist/index.js",
-    "dev": "npm run build && node dist/index.js examples/sample-policy.alfa -o output/compiled.js",
     "test": "npm run build && vitest run",
     "test:debug": "npm run build && cross-env LOG_LEVEL=debug vitest run",
-    "test:watch": "npm run build && vitest",
-    "test:coverage": "npm run build && vitest run --coverage",
     "clean": "rm -rf dist",
     "prepublishOnly": "npm run clean && npm run build",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
@@ -53,6 +49,7 @@
     "cross-env": "^7.0.3",
     "eslint": "^9.39.1",
     "eslint-plugin-unused-imports": "^4.3.0",
+    "fix-esm-import-path": "^1.10.3",
     "prettier": "^3.6.2",
     "tsc-alias": "^1.8.16",
     "typescript": "^5.9.3",
