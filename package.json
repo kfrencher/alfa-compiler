@@ -19,7 +19,8 @@
     "format:check": "prettier --check \"src/**/*.ts\" \"test/**/*.ts\"",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
-    "global-install": "npm run build && npm pack && npm i -g alfa-compiler-1.0.0.tgz"
+    "global-install": "npm run build && npm pack && npm i -g alfa-compiler-1.0.0.tgz",
+    "prepare": "husky"
   },
   "files": [
     "dist",
@@ -50,6 +51,7 @@
     "eslint": "^9.39.1",
     "eslint-plugin-unused-imports": "^4.3.0",
     "fix-esm-import-path": "^1.10.3",
+    "husky": "^9.1.7",
     "prettier": "^3.6.2",
     "tsc-alias": "^1.8.16",
     "typescript": "^5.9.3",
