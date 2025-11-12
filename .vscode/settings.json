@@ -13,5 +13,15 @@
     "**/*.code-search": true,
     "dist/**/*": true
   },
-  "editor.formatOnSave": true
+  "workbench.colorCustomizations": {
+    "statusBar.background": "#1D856D",
+    "statusBar.foreground": "#fff",
+    "activityBar.background": "#1D856D",
+    "activityBar.foreground": "#fff"
+  },
+  "now.instance.user.name": "",
+  "now.instance.host.url": "",
+  "now.instance.OAuth.client.id": "",
+  "now.instance.user.password": "",
+  "now.instance.OAuth.client.secret": ""
 }
